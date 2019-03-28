@@ -7,24 +7,34 @@ const jwt = require('jsonwebtoken');
 const keys = require('../../config/keys'); 
 const passport = require('passport');
 
+// Load Input validation
+const validateRegisterInput = require('../../validation/register');
+const validateLoginInput = require('../../validation/login');
+
 // Load user model/schema 
 const User = require('../../models/User');
-
+ 
 // @route GET api/users/test
 // @desc tests users route
 // @access public
 router.get('/test', (req, res) => res.json({msg: "users works"}));
 
-
 // @route  GET api/users/register
 // @desc   registers user  
 // @access public
 router.post('/register', (req, res ) => {
+   const { errors, isValid } = validateRegisterInput(req.body);
+   
+   // Check Validation, if there are errors, return a 400 status and the entire errors object:
+   if(!isValid){
+      return res.status(400).json(errors);
+}
    // db query looking for the email that the user uses to register, making sure there it isn't already being used. 
    User.findOne({ email: req.body.email})
       .then(user => {
          if(user) {
-            return res.status(400).json({email: 'Email already exists' });
+            errors.email = "Email already exists";
+            return res.status(400).json(errors);
          } else { // if user does't exist
             const avatar = gravatar.url(req.body.email, {
                s: '200', // size of avatar
@@ -45,16 +55,23 @@ router.post('/register', (req, res ) => {
                   newUser.save()
                      .then(user => res.json(user))
                      .catch(err => console.log(err));
-               })
-            })
+               });
+            });
          }
-      })
+      });
 });
 
 // @route GET api/users/login
 // @desc login user/ returning jwt
 // @access public
 router.post('/login', (req, res) => {
+   const { errors, isValid } = validateLoginInput(req.body);
+   
+   // Check Validation
+   if (!isValid) {
+      return res.status.s(400).json(errors);
+   }
+
    const email = req.body.email;
    const password = req.body.password;
 
@@ -63,7 +80,8 @@ router.post('/login', (req, res) => {
       .then(user => {
          // check for user
          if(!user) {
-            return res.status(404).json({email: 'user not found'});
+            errors.email = 'User not found';
+            return res.status(404).json(errors);
          }
 
          // check password
@@ -85,7 +103,7 @@ router.post('/login', (req, res) => {
                // 4. a callback function that returns the token as a response   
                jwt.sign(
                   payload, 
-                  keys.secretOrKey, 
+                  keys.secretOrKey, // fron config/keys.js
                   { expiresIn: 3600 }, 
                   (err, token) => {
                      // token is sent back as a response
@@ -95,7 +113,8 @@ router.post('/login', (req, res) => {
                      });
                   }); 
                } else {
-               return res.status(400).json({password: 'Password incorrect'});
+                  errors.password = 'Incorrect Password';
+                  return res.status(400).json(errors);
                }
             });
       });
