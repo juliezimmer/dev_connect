@@ -1,7 +1,10 @@
+// brings in mongoose from node_modules
 const mongoose = require('mongoose');
+// saves reference to Schema constructor 'mongoose.model'
+// schema constructor, mongoose.model, is used and saved in a const, Schema.
 const Schema = mongoose.Schema;
 
-// Create Schema
+// Create new Schema and name it ProfileSchema
 const ProfileSchema = new Schema({  
    user: {
       type: Schema.Types.ObjectId,
@@ -112,6 +115,9 @@ const ProfileSchema = new Schema({
    },
    date: {
       type: Date,
-      default: Date.now // provides a time-stamp
+      default: Date.now // provides a current time-stamp
    }
 });
+
+// creates the model from the schema defined above using the mongoose model method and exports the model
+module.exports = Profile = mongoose.model('profile', ProfileSchema);
