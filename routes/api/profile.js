@@ -3,6 +3,9 @@ const router = express.Router();
 const mongoose = require('mongoose');
 const passport = require('passport');
 
+// Load validation
+const validateProileInput = require('../../validation/profile');
+
 // Load Profile Model
 const Profile = require('../../models/Profile');
 // Load User Profile
@@ -22,6 +25,7 @@ router.get('/', passport.authenticate('jwt', { session: false }), (req, res) => 
    
    // the jwt that is passed into possport.authenticate() puts the user's  into req.user, which is how the user's information is accessed.   
       Profile.findOne({ user: req.user.id })
+      .populate('user', ['name', 'avatar'])
       .then(profile => {
          // checks for a profile
          if(!profile) { // if there is no profile
@@ -35,11 +39,85 @@ router.get('/', passport.authenticate('jwt', { session: false }), (req, res) => 
       .catch(err => res.status(404).json(err));
    }
 );
+// Route to get all of the profiles
+// @route  GET api/profile/all 
+// @desc   Gets all profiles 
+// @access public route (no need for passport.authenticate)
+router.get('/all', (req, res) => {
+   // initialize errors object
+   const errors = {};
+
+   Profile.find()
+   .populate('user', ['name', 'avatar'])
+      .then(profiles => {
+         if(!profiles) {
+            errors.noprofile = "There are no profile for this user";
+            return res.status(404).json(errors); 
+         }
+         res.json(profiles);
+      })
+      .catch(err => res.status(404).json({profile: "There are no profiles" })
+   );
+});   
+
+// @route  GET api/profile/handle/:handle
+// @desc   Gets profile by user handle
+// @access public route (no need for passport.authenticate)
+router.get('/handle/:handle', (req, res) => {
+   // initialize errors object
+   const errors = {};
+   
+   Profile.findOne({handle:req.params.handle}) 
+      .populate('user', ['name', 'avatar'])  
+      .then(profile => { // check for profile with this specified handle
+         if(!profile) {
+            // no profile
+            // add noprofile to errors object
+            errors.noprofile = "There is no profile for this user";
+            res.status(404).json(errors);
+         } 
+         // profile is found
+         res.json(profile);
+      }) 
+      .catch(err => res.status(404).json(err));
+})
+
+// @route  GET api/profile/user/:user_id
+// @desc   Gets profile by user ID
+// @access public route (no need for passport.authenticate)
+
+router.get('/user/:user_id', (req, res) => {
+   // initialize errors object
+   const errors = {};
+   
+   Profile.findOne({ user: req.params.user_id}) 
+      .populate('user', ['name', 'avatar'])  
+      .then(profile => { // check for profile with this specified handle
+         if(!profile) {
+            // no profile
+            // add noprofile to errors object
+            errors.noprofile = "There is no profile for this user";
+            res.status(404).json(errors);
+         } 
+         // profile is found
+         res.json(profile);
+      }) 
+      .catch(err => res.status(404).json({profile: "There is no profile for this user"}));
+})
 
 // @route  POST api/profile
 // @desc   Create or Edit User profile
 // @access private route
 router.post('/', passport.authenticate('jwt', { session: false }), (req, res) => {  // the fields needed are in req.body
+   // destructuring
+   const { errors, isValid } = validateProfileInput(req.body);
+
+   // Check validation
+   if(!isValid) {
+      // return any errors with status 400
+      return res.status(400).json(errors);
+   }
+
    // get fields
    // everything that is fetched in this request will go into an object, profileFields:
    const profileFields = {};
