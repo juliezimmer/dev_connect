@@ -18,7 +18,8 @@ module.exports = (passport) => {
             }
             return done(null, false);
          })
+         // if there is an err, log err to the console.
          .catch((err) => console.log(err));
    }));
 };
-// jwt_payload includes that same information that is in the const payload in users.js: name, id, avatar
+// jwt_payload includes the same information that is in the const payload in users.js: name, id, avatar
